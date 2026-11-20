@@ -7,6 +7,15 @@ dist/
 # Test screenshots
 **/scripts/shots/
 
+# Test/lint generated artifacts (regenerate with npm run test:coverage / lint)
+coverage/
+eslint-report.json
+
+# Local SQLite databases
+*.db
+*.db-wal
+*.db-shm
+
 # Logs & OS files
 *.log
 .DS_Store

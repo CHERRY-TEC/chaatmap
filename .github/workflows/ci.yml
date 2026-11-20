@@ -1,0 +1,80 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+# Cancel a superseded run on the same ref to save Actions minutes.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Lint → Test → Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: react-app/package-lock.json
+
+      - name: Install dependencies
+        working-directory: react-app
+        run: npm ci
+
+      - name: Lint (ESLint)
+        working-directory: react-app
+        run: npm run lint
+
+      - name: Test (Vitest, 245 tests)
+        working-directory: react-app
+        run: npm test
+
+      - name: Test coverage
+        working-directory: react-app
+        run: npm run test:coverage
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: react-app/coverage/
+          retention-days: 7
+
+      - name: Build production bundle
+        working-directory: react-app
+        run: npm run build
+
+      - name: Build single-file offline HTML
+        working-directory: react-app
+        run: npm run build:single
+
+      - name: Verify single-file output exists
+        working-directory: react-app
+        run: test -s dist/index.html && echo "Single-file build OK ($(wc -c < dist/index.html) bytes)"
+
+      - name: Verify API boots (SQLite + Express)
+        working-directory: react-app
+        env:
+          CHAATMAP_DB: ':memory:'
+          PORT: '0'
+        run: |
+          node server/main.js > server.log 2>&1 &
+          SERVER_PID=$!
+          for i in $(seq 1 20); do
+            if grep -q 'listening' server.log; then break; fi
+            sleep 0.25
+          done
+          grep -q 'listening' server.log
+          kill $SERVER_PID
+          cat server.log

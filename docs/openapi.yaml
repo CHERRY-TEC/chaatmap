@@ -1,0 +1,340 @@
+openapi: 3.1.0
+info:
+  title: ChaatMap REST API
+  version: 1.0.0
+  description: |
+    Three-tier street-food hygiene platform API. React client → Express API →
+    SQLite (node:sqlite). The browser client degrades to localStorage when the
+    API is unavailable. Hygiene scores are always derived from reviews via
+    the weighted formula (0.40·water + 0.25·covered + 0.20·gloves + 0.15·surroundings).
+  license:
+    name: MIT
+servers:
+  - url: http://localhost:3001/api
+    description: Local development
+  - url: /api
+    description: Same-origin deployment
+
+tags:
+  - name: system
+  - name: vendors
+  - name: reviews
+  - name: favourites
+  - name: optimization
+
+paths:
+  /health:
+    get:
+      tags: [system]
+      summary: Liveness probe
+      security: []
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              example: { status: ok, time: '2026-11-20T16:26:48.891Z', requestId: 'trace-123' }
+
+  /stats:
+    get:
+      tags: [system]
+      summary: Aggregate counts from SQLite
+      security: []
+      responses:
+        '200':
+          description: Statistics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  vendors: { type: integer }
+                  reviews: { type: integer }
+                  verified: { type: integer }
+                  areas: { type: integer }
+                  open: { type: integer }
+                  path: { type: string }
+
+  /vendors:
+    get:
+      tags: [vendors]
+      summary: List vendors (optionally filtered)
+      security: []
+      parameters:
+        - { name: category, in: query, schema: { type: string }, description: 'Exact category; "all" disables' }
+        - { name: area, in: query, schema: { type: string }, description: 'Exact area; "Hyderabad" disables' }
+        - { name: q, in: query, schema: { type: string }, description: 'Search name, specialty, area, dishes' }
+        - { name: minHygiene, in: query, schema: { type: number }, description: 'Minimum derived hygiene score' }
+      responses:
+        '200':
+          description: Matching vendors with derived scores
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count: { type: integer }
+                  vendors: { type: array, items: { $ref: '#/components/schemas/Vendor' } }
+
+  /vendors/{id}:
+    get:
+      tags: [vendors]
+      summary: Get one vendor with reviews
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/VendorId'
+      responses:
+        '200':
+          description: Vendor detail
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Vendor' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /vendors/{id}/reviews:
+    post:
+      tags: [reviews]
+      summary: Add a hygiene review (recalculates the score)
+      parameters:
+        - $ref: '#/components/parameters/VendorId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ReviewInput' }
+      responses:
+        '201':
+          description: Review created with before/after hygiene score
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  review: { $ref: '#/components/schemas/Review' }
+                  vendor: { $ref: '#/components/schemas/Vendor' }
+                  hygiene:
+                    type: object
+                    properties:
+                      before: { type: ['number', 'null'] }
+                      after: { type: ['number', 'null'] }
+                      changed: { type: boolean }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /vendors/{id}/fssai:
+    patch:
+      tags: [vendors]
+      summary: Set FSSAI verification flag (admin only — the only badge path)
+      parameters:
+        - $ref: '#/components/parameters/VendorId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [verified]
+              properties:
+                verified: { type: boolean }
+      responses:
+        '200':
+          description: Updated flag
+          content:
+            application/json:
+              example: { id: mahalaxmi-chaat-center, fssaiVerified: true }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /reviews/{id}:
+    delete:
+      tags: [reviews]
+      summary: Delete a review (admin only)
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '204': { description: Deleted }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /favorites:
+    get:
+      tags: [favourites]
+      summary: List favourited vendor ids
+      security: []
+      responses:
+        '200':
+          description: Favourites
+          content:
+            application/json:
+              example: { favorites: [mahalaxmi-chaat-center] }
+
+  /favorites/{id}:
+    post:
+      tags: [favourites]
+      summary: Add a favourite (idempotent)
+      parameters:
+        - $ref: '#/components/parameters/VendorId'
+      responses:
+        '201': { description: Added }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+    delete:
+      tags: [favourites]
+      summary: Remove a favourite
+      parameters:
+        - $ref: '#/components/parameters/VendorId'
+      responses:
+        '200': { description: Removed }
+
+  /plan:
+    post:
+      tags: [optimization]
+      summary: Budget-constrained day plan (greedy + local search + 2-opt)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TripPlanInput' }
+      responses:
+        '200':
+          description: Selected stops within budget
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  budget: { type: integer }
+                  maxStops: { type: integer }
+                  stops: { type: array, items: { type: object } }
+                  totalCost: { type: number }
+                  remainingBudget: { type: number }
+                  value: { type: number }
+                  distanceKm: { type: number }
+                  algorithm: { type: string }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /routes/optimize:
+    post:
+      tags: [optimization]
+      summary: Shortest walking order (nearest neighbour + 2-opt)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [stops]
+              properties:
+                stops:
+                  type: array
+                  minItems: 2
+                  items:
+                    type: object
+                    required: [lat, lng]
+                    properties:
+                      id: { type: string }
+                      lat: { type: number }
+                      lng: { type: number }
+                startIndex: { type: integer, default: 0 }
+      responses:
+        '200':
+          description: Optimized route
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  order: { type: array, items: { type: integer } }
+                  stops: { type: array, items: { type: object } }
+                  distanceKm: { type: number }
+                  improvements: { type: integer }
+                  algorithm: { type: string }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+components:
+  securitySchemes:
+    demoUser:
+      type: apiKey
+      in: header
+      name: X-Chaatmap-User
+      description: |
+        Demo auth. Email of the signed-in user. The admin role is derived
+        server-side from the admin@ prefix; never trust a role in the body.
+
+  parameters:
+    VendorId:
+      name: id
+      in: path
+      required: true
+      description: Slug id (letters, digits and hyphens)
+      schema: { type: string, pattern: '^[a-zA-Z0-9][a-zA-Z0-9-]{1,63}$' }
+
+  responses:
+    NotFound:
+      description: Resource not found
+    Unauthenticated:
+      description: Missing X-Chaatmap-User header
+    Forbidden:
+      description: Admin role required
+    ValidationError:
+      description: Invalid input
+      content:
+        application/json:
+          example: { error: validation_failed, errors: { water: 'Ratings must be between 0 and 5.' } }
+
+  schemas:
+    ReviewInput:
+      type: object
+      required: [author, stars, water, covered, gloves, surroundings]
+      properties:
+        author: { type: string, minLength: 2, maxLength: 60 }
+        stars: { type: integer, minimum: 1, maximum: 5 }
+        water: { type: integer, minimum: 0, maximum: 5, description: '40% weight' }
+        covered: { type: integer, minimum: 0, maximum: 5, description: '25% weight' }
+        gloves: { type: integer, minimum: 0, maximum: 5, description: '20% weight' }
+        surroundings: { type: integer, minimum: 0, maximum: 5, description: '15% weight' }
+        comment: { type: string, maxLength: 500 }
+    Review:
+      allOf:
+        - $ref: '#/components/schemas/ReviewInput'
+        - type: object
+          properties:
+            id: { type: string }
+            vendorId: { type: string }
+            date: { type: string, format: date }
+    Vendor:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        category: { type: string }
+        specialty: { type: string }
+        area: { type: string }
+        distanceKm: { type: number }
+        priceMin: { type: integer }
+        priceMax: { type: integer }
+        image: { type: string }
+        emoji: { type: string }
+        lat: { type: number }
+        lng: { type: number }
+        openNow: { type: boolean }
+        fssaiVerified: { type: boolean }
+        reviews: { type: array, items: { $ref: '#/components/schemas/Review' } }
+        hygieneScore: { type: ['number', 'null'], description: 'Derived from reviews via weighted formula' }
+        rating: { type: ['number', 'null'], description: 'Mean star rating' }
+        reviewCount: { type: integer }
+    TripPlanInput:
+      type: object
+      required: [budget]
+      properties:
+        budget: { type: number, minimum: 0, maximum: 100000 }
+        maxStops: { type: integer, minimum: 1, maximum: 20, default: 5 }
+        startId: { type: string }
+
+security:
+  - demoUser: []

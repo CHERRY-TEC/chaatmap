@@ -31,11 +31,23 @@ export function weightedScore(f) {
   )
 }
 
-/** Average of one factor across all of a vendor's reviews. */
+/**
+ * Average of one factor across all of a vendor's reviews.
+ * Reviews that do not carry the field are skipped rather than counted as 0,
+ * so a partial record can never drag a vendor's score down artificially.
+ */
 export function factorAverage(reviews, key) {
-  if (!reviews?.length) return null
-  const sum = reviews.reduce((s, r) => s + (Number(r[key]) || 0), 0)
-  return sum / reviews.length
+  if (!Array.isArray(reviews) || !reviews.length) return null
+  let sum = 0
+  let count = 0
+  for (const r of reviews) {
+    const n = Number(r?.[key])
+    if (Number.isFinite(n)) {
+      sum += n
+      count++
+    }
+  }
+  return count ? sum / count : null
 }
 
 /**

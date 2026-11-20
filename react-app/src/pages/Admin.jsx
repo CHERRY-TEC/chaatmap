@@ -14,7 +14,7 @@ import { vendorHygiene, vendorRating, round1 } from '../lib/hygiene.js'
  */
 export default function Admin() {
   const {
-    vendors, user, signIn, signOut, toggleFssai, deleteReview, resetData, loading,
+    vendors, user, signIn, toggleFssai, deleteReview, resetData, loading,
   } = useApp()
   const [tab, setTab] = useState('overview')
 

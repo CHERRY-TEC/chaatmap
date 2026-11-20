@@ -1,13 +1,12 @@
-import { useMemo, useState, useEffect } from 'react'
+import { useMemo, useState } from 'react'
 import { useSearchParams, Link } from 'react-router-dom'
 import {
   Search, MapPin, SlidersHorizontal, X, List, Map, ShieldCheck, Route,
 } from 'lucide-react'
 import { useApp } from '../context/AppContext.jsx'
 import { CATEGORIES } from '../data/categories.js'
-import { TRAILS, getTrail } from '../data/trails.js'
+import { getTrail } from '../data/trails.js'
 import { vendorHygiene, vendorRating } from '../lib/hygiene.js'
-import VendorCard from '../components/VendorCard.jsx'
 import VendorMap from '../components/VendorMap.jsx'
 
 const HYGIENE_OPTIONS = [
@@ -20,21 +19,18 @@ const HYGIENE_OPTIONS = [
 export default function Explore() {
   const { vendors, loading, selectedArea, setSelectedArea, areas } = useApp()
   const [params, setParams] = useSearchParams()
-  const [q, setQ] = useState(params.get('q') || '')
-  const [category, setCategory] = useState(params.get('category') || 'all')
   const [minHygiene, setMinHygiene] = useState(0)
   const [view, setView] = useState('list') // mobile map/list toggle
   const [selectedId, setSelectedId] = useState(null)
 
+  // The URL is the single source of truth for search + category, so external
+  // navigations (category cards, trail links, back button) are reflected
+  // immediately — no effect needed to mirror them into local state.
+  const q = params.get('q') || ''
+  const category = params.get('category') || 'all'
+
   const trailId = params.get('trail')
   const trail = trailId ? getTrail(trailId) : null
-
-  // Keep local state in sync when URL changes (category cards, trail links…)
-  useEffect(() => {
-    setQ(params.get('q') || '')
-    setCategory(params.get('category') || 'all')
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [params])
 
   const applyParam = (key, value) => {
     const next = new URLSearchParams(params)
@@ -67,8 +63,6 @@ export default function Explore() {
   }, [vendors, trail, selectedArea, category, q, minHygiene])
 
   const clearAll = () => {
-    setQ('')
-    setCategory('all')
     setMinHygiene(0)
     setSelectedArea('Hyderabad')
     setParams(new URLSearchParams(), { replace: true })
@@ -137,7 +131,6 @@ export default function Explore() {
               <input
                 value={q}
                 onChange={(e) => {
-                  setQ(e.target.value)
                   applyParam('q', e.target.value)
                 }}
                 placeholder="Search vendors, dishes, areas..."
@@ -145,7 +138,7 @@ export default function Explore() {
                 aria-label="Search vendors"
               />
               {q && (
-                <button onClick={() => { setQ(''); applyParam('q', null) }} aria-label="Clear search">
+                <button onClick={() => applyParam('q', null)} aria-label="Clear search">
                   <X className="h-4 w-4 text-ink/40 hover:text-brand" />
                 </button>
               )}
@@ -178,7 +171,7 @@ export default function Explore() {
                 <label className="mb-1.5 block text-xs font-bold text-ink/70">Food category</label>
                 <div className="flex flex-wrap gap-1.5">
                   <button
-                    onClick={() => { setCategory('all'); applyParam('category', null) }}
+                    onClick={() => applyParam('category', null)}
                     className={`rounded-full border px-3 py-1.5 text-xs font-bold transition ${
                       category === 'all'
                         ? 'border-brand bg-brand text-white'
@@ -190,7 +183,7 @@ export default function Explore() {
                   {CATEGORIES.map((c) => (
                     <button
                       key={c.id}
-                      onClick={() => { setCategory(c.id); applyParam('category', c.id) }}
+                      onClick={() => applyParam('category', c.id)}
                       className={`rounded-full border px-3 py-1.5 text-xs font-bold transition ${
                         category === c.id
                           ? 'border-brand bg-brand text-white'

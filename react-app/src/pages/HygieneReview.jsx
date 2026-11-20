@@ -4,7 +4,7 @@ import {
   ShieldCheck, Droplets, Eye, Hand, Sparkles, CheckCircle2, AlertCircle, ArrowRight,
 } from 'lucide-react'
 import { useApp } from '../context/AppContext.jsx'
-import { vendorHygiene, round1 } from '../lib/hygiene.js'
+import { vendorHygiene } from '../lib/hygiene.js'
 import RatingStars from '../components/RatingStars.jsx'
 
 const CRITERIA = [

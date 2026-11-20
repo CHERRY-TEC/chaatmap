@@ -2,7 +2,6 @@ import { useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
 import L from 'leaflet'
-import { Star, ShieldCheck } from 'lucide-react'
 import { vendorHygiene, vendorRating } from '../lib/hygiene.js'
 
 // Brand-orange teardrop pin (divIcon — no default marker image assets needed)

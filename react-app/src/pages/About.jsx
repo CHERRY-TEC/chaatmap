@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
-  ShieldCheck, Users, MapPin, Heart, ArrowRight, Scale, Camera, Route,
+  ShieldCheck, Users, Heart, ArrowRight, Scale, Camera, Route,
 } from 'lucide-react'
 import { useApp } from '../context/AppContext.jsx'
 import { vendorHygiene, round1 } from '../lib/hygiene.js'

@@ -8,20 +8,33 @@ Brand: **ChaatMap** · Tagline: *Discover the Best Chaat & Street Food Near You!
 
 ---
 
-## Run the app
+## Quick start (after unzipping)
+
+**Option A — just view it (no install):**
+double-click **`index.html`** in the zip root. Everything (CSS, JS, all 22
+images) is inlined in that one file — it opens in any browser straight from
+disk. Only the map tiles and Manrope font need internet; it degrades
+gracefully without them.
+
+**Option B — run the source:**
 
 ```bash
 cd chaatmap/react-app
-npm install        # first time only
-npm run dev        # http://localhost:5173
+npm install        # first time only (downloads React, Vite, Tailwind, Leaflet)
+npm run dev        # → http://localhost:5173
 ```
+
+> Note: `node_modules/` and `dist/` are excluded from the zip on purpose —
+> `npm install` and `npm run build` recreate them.
 
 Other commands:
 
 ```bash
 npm run build      # production build → dist/
+npm run build:single   # regenerate the one-file chaatmap/index.html
 npm run preview    # serve the production build
 node scripts/smoke.mjs   # headless browser test (needs dev server running)
+node scripts/smoke-file.mjs # verify the single-file build over file://
 ```
 
 > Note: the dev server may currently be running on **http://localhost:5180**.

@@ -1,0 +1,13 @@
+# Dependencies
+node_modules/
+
+# Build output (regenerate with npm run build / build:single)
+dist/
+
+# Test screenshots
+**/scripts/shots/
+
+# Logs & OS files
+*.log
+.DS_Store
+Thumbs.db

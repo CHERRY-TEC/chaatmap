@@ -1,0 +1,100 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand: #F45116;
+  --color-brand2: #E85D32;
+  --color-ink: #211B19;
+  --color-cream: #FFF7EF;
+  --color-line: #F2E2D6;
+  --color-ok: #18864B;
+  --color-okbg: #E8F5E9;
+  --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--color-cream);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+@layer components {
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background: var(--color-brand);
+    color: #fff;
+    font-weight: 700;
+    border-radius: 9999px;
+    padding: 0.65rem 1.35rem;
+    transition: all 0.2s ease;
+    box-shadow: 0 6px 16px rgba(244, 81, 22, 0.25);
+  }
+  .btn-primary:hover {
+    background: var(--color-brand2);
+    transform: translateY(-1px);
+    box-shadow: 0 10px 22px rgba(244, 81, 22, 0.32);
+  }
+  .btn-primary:active { transform: scale(0.97); }
+
+  .btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background: #fff;
+    color: var(--color-ink);
+    font-weight: 700;
+    border: 1.5px solid var(--color-line);
+    border-radius: 9999px;
+    padding: 0.6rem 1.3rem;
+    transition: all 0.2s ease;
+  }
+  .btn-ghost:hover {
+    border-color: var(--color-brand);
+    color: var(--color-brand);
+  }
+
+  .card {
+    background: #fff;
+    border: 1px solid var(--color-line);
+    border-radius: 1rem;
+    box-shadow: 0 1px 3px rgba(33, 27, 25, 0.05);
+  }
+
+  .section {
+    margin-inline: auto;
+    max-width: 80rem;
+    padding-inline: 1rem;
+  }
+  @media (min-width: 640px) { .section { padding-inline: 1.5rem; } }
+  @media (min-width: 1024px) { .section { padding-inline: 2rem; } }
+
+  .input {
+    width: 100%;
+    background: #fff;
+    border: 1.5px solid var(--color-line);
+    border-radius: 0.75rem;
+    padding: 0.7rem 0.9rem;
+    font-size: 0.9rem;
+    outline: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  .input:focus {
+    border-color: var(--color-brand);
+    box-shadow: 0 0 0 3px rgba(244, 81, 22, 0.14);
+  }
+}
+
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+.leaflet-container { font-family: var(--font-sans); }
+.leaflet-popup-content-wrapper { border-radius: 14px; border: 1px solid var(--color-line); }
+.leaflet-popup-content { margin: 10px 14px; font-size: 13px; }
